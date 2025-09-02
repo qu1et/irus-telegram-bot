@@ -49,6 +49,10 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="Как я могу обращаться к вам?",
         )
     else:
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text="Буду ждать вас, если измените решение",
+        )
         return FIRST_MESSAGE
     return GET_NAME
 
@@ -66,14 +70,14 @@ async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_user.id, text="Введите ваш email:"
     )
-    return GET_AGREEMENT
+    return GET_EMAIL
 
 
 async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_user.id, text=AGREEMENT_TEXT
     )
-    return GET_LEAD
+    return GET_AGREEMENT
 
 
 async def get_lead(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -81,6 +85,10 @@ async def get_lead(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if message.strip().lower() == "согласен":
         await context.bot.send_message(chat_id=update.effective_user.id, text=FEATURES_TEXT)
     else:
+        await context.bot.send_message(
+            chat_id=update.effective_user.id,
+            text="К сожалению, тогда мы не можем предоставить вам функционал",
+        )
         return FIRST_MESSAGE
 
 
@@ -108,10 +116,16 @@ if __name__ == "__main__":
                     callback=get_email,
                 )
             ],
+            GET_EMAIL: [
+                MessageHandler(
+                    filters=filters.TEXT & ~filters.COMMAND,
+                    callback=get_agreement
+                )
+            ],
             GET_AGREEMENT: [
                 MessageHandler(
                     filters=filters.TEXT & ~filters.COMMAND,
-                    callback=get_agreement,
+                    callback=get_lead,
                 )
             ],
             GET_LEAD: [
