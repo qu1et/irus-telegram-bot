@@ -16,7 +16,9 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
-FIRST_MESSAGE, GET_NAME, GET_NUMBER, GET_EMAIL, GET_AGREEMENT, GET_LEAD = range(6)
+FIRST_MESSAGE, GET_ANSWER, GET_NAME, GET_NUMBER, GET_EMAIL, GET_AGREEMENT = (
+    range(6)
+)
 AGREEMENT_TEXT = (
     "Для отправки вам данных по интересующим компаниям, нам необходимо "
     "подтверждение на обработку данных. Мы не передаем их третьим лицам. "
@@ -41,23 +43,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return FIRST_MESSAGE
 
 
-async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = update.effective_message.text
     if answer.strip().lower() == "да":
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text="Как я могу обращаться к вам?",
         )
+        return GET_NAME
     else:
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text="Буду ждать вас, если измените решение",
         )
         return FIRST_MESSAGE
-    return GET_NAME
 
 
-async def get_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.effective_message.text
     await context.bot.send_message(
         chat_id=update.effective_user.id,
@@ -66,24 +68,26 @@ async def get_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return GET_NUMBER
 
 
-async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_user.id, text="Введите ваш email:"
     )
     return GET_EMAIL
 
 
-async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_user.id, text=AGREEMENT_TEXT
     )
     return GET_AGREEMENT
 
 
-async def get_lead(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message.text
     if message.strip().lower() == "согласен":
-        await context.bot.send_message(chat_id=update.effective_user.id, text=FEATURES_TEXT)
+        await context.bot.send_message(
+            chat_id=update.effective_user.id, text=FEATURES_TEXT
+        )
     else:
         await context.bot.send_message(
             chat_id=update.effective_user.id,
@@ -101,36 +105,30 @@ if __name__ == "__main__":
             FIRST_MESSAGE: [
                 MessageHandler(
                     filters=filters.TEXT & ~filters.COMMAND,
-                    callback=get_name,
+                    callback=get_answer,
                 ),
             ],
             GET_NAME: [
                 MessageHandler(
                     filters=filters.TEXT & ~filters.COMMAND,
-                    callback=get_number,
+                    callback=get_name,
                 )
             ],
             GET_NUMBER: [
                 MessageHandler(
                     filters=filters.TEXT & ~filters.COMMAND,
-                    callback=get_email,
+                    callback=get_number,
                 )
             ],
             GET_EMAIL: [
                 MessageHandler(
-                    filters=filters.TEXT & ~filters.COMMAND,
-                    callback=get_agreement
+                    filters=filters.TEXT & ~filters.COMMAND, callback=get_email
                 )
             ],
             GET_AGREEMENT: [
                 MessageHandler(
                     filters=filters.TEXT & ~filters.COMMAND,
-                    callback=get_lead,
-                )
-            ],
-            GET_LEAD: [
-                MessageHandler(
-                    filters=filters.TEXT & ~filters.COMMAND, callback=get_lead
+                    callback=get_agreement,
                 )
             ],
         },
