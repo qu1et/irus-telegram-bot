@@ -1,7 +1,11 @@
 import logging
 import os
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import (
+    Update,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+)
 from telegram.ext import (
     ApplicationBuilder,
     ContextTypes,
@@ -16,9 +20,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 
-FIRST_MESSAGE, GET_ANSWER, GET_NAME, GET_NUMBER, GET_EMAIL, GET_AGREEMENT = (
-    range(6)
-)
+FIRST_MESSAGE, GET_ANSWER, GET_NAME, GET_NUMBER, GET_EMAIL, GET_AGREEMENT = range(6)
 AGREEMENT_TEXT = (
     "Для отправки вам данных по интересующим компаниям, нам необходимо "
     "подтверждение на обработку данных. Мы не передаем их третьим лицам. "
@@ -36,19 +38,36 @@ FEATURES_TEXT = (
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [["Да", "Нет"]]
+    markup = ReplyKeyboardMarkup(
+        keyboard,
+        one_time_keyboard=True,
+        input_field_placeholder="Желаете присоединиться к нам?",
+        resize_keyboard=True,
+    )
     await context.bot.send_message(
         chat_id=update.effective_user.id,
         text=f"Приветствую, {update.effective_user.first_name}! Хотите получать аналитику по бумагам московской биржи?",
+        reply_markup=markup,
     )
     return FIRST_MESSAGE
 
 
 async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answer = update.effective_message.text
+    context.user_data["answer"] = answer
+    keyboard = [[update.effective_user.first_name]]
+    markup = ReplyKeyboardMarkup(
+        keyboard,
+        one_time_keyboard=True,
+        input_field_placeholder="Нажмите на кнопку или введите другое имя:",
+        resize_keyboard=True,
+    )
     if answer.strip().lower() == "да":
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text="Как я могу обращаться к вам?",
+            reply_markup=markup,
         )
         return GET_NAME
     else:
@@ -61,14 +80,24 @@ async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.effective_message.text
+    context.user_data["name"] = name
+    keyboard = [[KeyboardButton("Отправьте номер телефона", request_contact=True)]]
+    markup = ReplyKeyboardMarkup(
+        keyboard,
+        one_time_keyboard=True,
+        input_field_placeholder="Нажмите на кнопку",
+        resize_keyboard=True,
+    )
     await context.bot.send_message(
         chat_id=update.effective_user.id,
         text=f"{name}, чтобы получать актуальную иформацию укажите ваш номер телефона:",
+        reply_markup=markup,
     )
     return GET_NUMBER
 
 
 async def get_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["phone_number"] = update.effective_message.contact.phone_number
     await context.bot.send_message(
         chat_id=update.effective_user.id, text="Введите ваш email:"
     )
@@ -76,17 +105,29 @@ async def get_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["email"] = update.effective_message.text
+    keyboard = [["Согласен", "Не согласен"]]
+    markup = ReplyKeyboardMarkup(
+        keyboard,
+        one_time_keyboard=True,
+        input_field_placeholder="Подтвердите согласие на обработку данных:",
+        resize_keyboard=True,
+    )
     await context.bot.send_message(
-        chat_id=update.effective_user.id, text=AGREEMENT_TEXT
+        chat_id=update.effective_user.id, text=AGREEMENT_TEXT, reply_markup=markup
     )
     return GET_AGREEMENT
 
 
 async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.effective_message.text
+    context.user_data["agreement"] = message
     if message.strip().lower() == "согласен":
         await context.bot.send_message(
             chat_id=update.effective_user.id, text=FEATURES_TEXT
+        )
+        await context.bot.send_message(
+            chat_id=os.getenv("ADMIN_ID"), text=f"{context.user_data}"
         )
     else:
         await context.bot.send_message(
@@ -116,13 +157,14 @@ if __name__ == "__main__":
             ],
             GET_NUMBER: [
                 MessageHandler(
-                    filters=filters.TEXT & ~filters.COMMAND,
+                    filters=filters.CONTACT,
                     callback=get_number,
                 )
             ],
             GET_EMAIL: [
                 MessageHandler(
-                    filters=filters.TEXT & ~filters.COMMAND, callback=get_email
+                    filters=filters.TEXT & ~filters.COMMAND,
+                    callback=get_email,
                 )
             ],
             GET_AGREEMENT: [
