@@ -1,0 +1,9 @@
+(
+    FIRST_MESSAGE,
+    GET_ANSWER,
+    GET_NAME,
+    GET_NUMBER,
+    GET_EMAIL,
+    GET_AGREEMENT,
+    INLINE_BUTTON,
+) = range(7)
