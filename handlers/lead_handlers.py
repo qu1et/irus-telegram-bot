@@ -17,6 +17,8 @@ from config.states import (
     GET_AGREEMENT,
     INLINE_BUTTON,
 )
+from handlers.jobs_handler import send_message_job
+from datetime import timedelta
 
 AGREEMENT_TEXT = (
     "Для отправки вам данных по интересующим компаниям, нам необходимо "
@@ -38,6 +40,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=f"Приветствую, {update.effective_user.first_name}! Хотите получать аналитику по бумагам московской биржи?",
         reply_markup=markup,
     )
+    context.job_queue.run_once(
+        send_message_job,
+        when=timedelta(seconds=30),
+        data={
+            "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
+        },
+        name="send_message_job",
+        chat_id=update.effective_user.id,
+    )
     return FIRST_MESSAGE
 
 
@@ -56,6 +67,15 @@ async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_user.id,
             text="Как я могу обращаться к вам?",
             reply_markup=markup,
+        )
+        context.job_queue.run_once(
+            send_message_job,
+            when=timedelta(hours=1),
+            data={
+                "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
+            },
+            name="send_message_job",
+            chat_id=update.effective_user.id,
         )
         return GET_NAME
     else:
@@ -81,6 +101,15 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=f"{name}, чтобы получать актуальную иформацию укажите ваш номер телефона:",
         reply_markup=markup,
     )
+    context.job_queue.run_once(
+        send_message_job,
+        when=timedelta(hours=1),
+        data={
+            "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
+        },
+        name="send_message_job",
+        chat_id=update.effective_user.id,
+    )
     return GET_NUMBER
 
 
@@ -88,6 +117,15 @@ async def get_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["phone_number"] = update.effective_message.contact.phone_number
     await context.bot.send_message(
         chat_id=update.effective_user.id, text="Введите ваш email:"
+    )
+    context.job_queue.run_once(
+        send_message_job,
+        when=timedelta(hours=1),
+        data={
+            "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
+        },
+        name="send_message_job",
+        chat_id=update.effective_user.id,
     )
     return GET_EMAIL
 
@@ -103,6 +141,15 @@ async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await context.bot.send_message(
         chat_id=update.effective_user.id, text=AGREEMENT_TEXT, reply_markup=markup
+    )
+    context.job_queue.run_once(
+        send_message_job,
+        when=timedelta(hours=1),
+        data={
+            "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
+        },
+        name="send_message_job",
+        chat_id=update.effective_user.id,
     )
     return GET_AGREEMENT
 
@@ -131,6 +178,13 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         await context.bot.send_message(
             chat_id=os.getenv("ADMIN_ID"), text=f"{context.user_data}"
+        )
+        context.job_queue.run_once(
+            send_message_job,
+            when=timedelta(hours=1),
+            data={"message": "Не забудьте выбрать план"},
+            name="send_message_job",
+            chat_id=update.effective_user.id,
         )
         return INLINE_BUTTON
     else:
