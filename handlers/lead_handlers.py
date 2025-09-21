@@ -42,7 +42,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     context.job_queue.run_once(
         send_message_job,
-        when=timedelta(seconds=30),
+        when=timedelta(hours=1),
         data={
             "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
         },
