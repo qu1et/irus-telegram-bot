@@ -19,6 +19,7 @@ from config.states import (
 )
 from handlers.jobs_handler import send_message_job
 from datetime import timedelta
+from db.user_crud import create_user, get_user, update_user
 
 AGREEMENT_TEXT = (
     "Для отправки вам данных по интересующим компаниям, нам необходимо "
@@ -28,6 +29,8 @@ AGREEMENT_TEXT = (
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await get_user(update.effective_user.id):
+        await create_user(update.effective_user.id)
     keyboard = [["Да", "Нет"]]
     markup = ReplyKeyboardMarkup(
         keyboard,
@@ -88,6 +91,7 @@ async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     name = update.effective_message.text
+    await update_user(update.effective_user.id, "name", name)
     context.user_data["name"] = name
     keyboard = [[KeyboardButton("Отправьте номер телефона", request_contact=True)]]
     markup = ReplyKeyboardMarkup(
@@ -114,7 +118,9 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["phone_number"] = update.effective_message.contact.phone_number
+    phone = update.effective_message.contact.phone_number
+    await update_user(update.effective_user.id, "phone", phone)
+    context.user_data["phone_number"] = phone
     await context.bot.send_message(
         chat_id=update.effective_user.id, text="Введите ваш email:"
     )
@@ -131,7 +137,9 @@ async def get_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["email"] = update.effective_message.text
+    email = update.effective_message.text
+    await update_user(update.effective_user.id, "email", email)
+    context.user_data["email"] = email
     keyboard = [["Согласен", "Не согласен"]]
     markup = ReplyKeyboardMarkup(
         keyboard,
@@ -171,6 +179,7 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     markup = InlineKeyboardMarkup(keyboard)
     if message.strip().lower() == "согласен":
+        await update_user(update.effective_user.id, "agreement", 1)
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text="Выберите план",

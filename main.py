@@ -27,6 +27,7 @@ from config.states import (
     GET_AGREEMENT,
     INLINE_BUTTON,
 )
+from db.database import create_tables
 
 load_dotenv()
 logging.basicConfig(
@@ -34,7 +35,12 @@ logging.basicConfig(
 )
 
 if __name__ == "__main__":
-    application = ApplicationBuilder().token(os.getenv("TOKEN")).build()
+    application = (
+        ApplicationBuilder()
+        .token(os.getenv("TOKEN"))
+        .post_init(create_tables)
+        .build()
+    )
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
