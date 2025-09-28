@@ -13,7 +13,7 @@ async def get_user(id_tg: int):
     
 async def update_user(id_tg: int, column: str, data):
     async with aiosqlite.connect('user.db') as conn:
-        await conn.execute(f'UPDATE users SET {column} = ? WHERE id_tg = ?', (id_tg, data))
+        await conn.execute(f'UPDATE users SET {column} = ? WHERE id_tg = ?', (data, id_tg))
         await conn.commit()
     return True
         
