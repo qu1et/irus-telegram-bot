@@ -20,6 +20,8 @@ from config.states import (
 from handlers.jobs_handler import send_message_job
 from datetime import timedelta
 from db.user_crud import create_user, get_user, update_user
+from db.tags_crud import set_tag, delete_tag
+from logs.logger import logger
 
 AGREEMENT_TEXT = (
     "Для отправки вам данных по интересующим компаниям, нам необходимо "
@@ -31,6 +33,11 @@ AGREEMENT_TEXT = (
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await get_user(update.effective_user.id):
         await create_user(update.effective_user.id)
+        logger.info("User has been created 📝")
+        user = await get_user(update.effective_user.id)
+        await set_tag(user[0], 3)
+        logger.info("Tag has been setted 📝")
+
     keyboard = [["Да", "Нет"]]
     markup = ReplyKeyboardMarkup(
         keyboard,
@@ -43,19 +50,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=f"Приветствую, {update.effective_user.first_name}! Хотите получать аналитику по бумагам московской биржи?",
         reply_markup=markup,
     )
-    context.job_queue.run_once(
+    job = context.job_queue.run_once(
         send_message_job,
         when=timedelta(hours=1),
         data={
             "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
         },
-        name="send_message_job",
+        name=f"send_message_job_{update.effective_user.username}",
         chat_id=update.effective_user.id,
     )
+    context.user_data["job_name"] = job.name
     return FIRST_MESSAGE
 
 
 async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "job_name" in context.user_data:
+        for jobs in context.job_queue.get_jobs_by_name(context.user_data["job_name"]):
+            jobs.schedule_removal()
     answer = update.effective_message.text
     context.user_data["answer"] = answer
     keyboard = [[update.effective_user.first_name]]
@@ -66,20 +77,26 @@ async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         resize_keyboard=True,
     )
     if answer.strip().lower() == "да":
+        user = await get_user(update.effective_user.id)
+        print(user[0])
+        await delete_tag(user[0])
+        await set_tag(user[0], 2)
+        logger.info("Tag has been changed ℹ️")
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text="Как я могу обращаться к вам?",
             reply_markup=markup,
         )
-        context.job_queue.run_once(
+        job = context.job_queue.run_once(
             send_message_job,
             when=timedelta(hours=1),
             data={
                 "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
             },
-            name="send_message_job",
+            name=f"send_message_job_{update.effective_user.username}",
             chat_id=update.effective_user.id,
         )
+        context.user_data["job_name"] = job.name
         return GET_NAME
     else:
         await context.bot.send_message(
@@ -90,6 +107,9 @@ async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "job_name" in context.user_data:
+        for jobs in context.job_queue.get_jobs_by_name(context.user_data["job_name"]):
+            jobs.schedule_removal()
     name = update.effective_message.text
     await update_user(update.effective_user.id, "name", name)
     context.user_data["name"] = name
@@ -105,38 +125,46 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=f"{name}, чтобы получать актуальную иформацию укажите ваш номер телефона:",
         reply_markup=markup,
     )
-    context.job_queue.run_once(
+    job = context.job_queue.run_once(
         send_message_job,
         when=timedelta(hours=1),
         data={
             "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
         },
-        name="send_message_job",
+        name=f"send_message_job_{update.effective_user.username}",
         chat_id=update.effective_user.id,
     )
+    context.user_data["job_name"] = job.name
     return GET_NUMBER
 
 
 async def get_number(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "job_name" in context.user_data:
+        for jobs in context.job_queue.get_jobs_by_name(context.user_data["job_name"]):
+            jobs.schedule_removal()
     phone = update.effective_message.contact.phone_number
     await update_user(update.effective_user.id, "phone", phone)
     context.user_data["phone_number"] = phone
     await context.bot.send_message(
         chat_id=update.effective_user.id, text="Введите ваш email:"
     )
-    context.job_queue.run_once(
+    job = context.job_queue.run_once(
         send_message_job,
         when=timedelta(hours=1),
         data={
             "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
         },
-        name="send_message_job",
+        name=f"send_message_job_{update.effective_user.username}",
         chat_id=update.effective_user.id,
     )
+    context.user_data["job_name"] = job.name
     return GET_EMAIL
 
 
 async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "job_name" in context.user_data:
+        for jobs in context.job_queue.get_jobs_by_name(context.user_data["job_name"]):
+            jobs.schedule_removal()
     email = update.effective_message.text
     await update_user(update.effective_user.id, "email", email)
     context.user_data["email"] = email
@@ -150,19 +178,23 @@ async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
         chat_id=update.effective_user.id, text=AGREEMENT_TEXT, reply_markup=markup
     )
-    context.job_queue.run_once(
+    job = context.job_queue.run_once(
         send_message_job,
         when=timedelta(hours=1),
         data={
             "message": "Не забудьте завершить знакомство и воспользоваться возможностями бота"
         },
-        name="send_message_job",
+        name=f"send_message_job_{update.effective_user.username}",
         chat_id=update.effective_user.id,
     )
+    context.user_data["job_name"] = job.name
     return GET_AGREEMENT
 
 
 async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "job_name" in context.user_data:
+        for jobs in context.job_queue.get_jobs_by_name(context.user_data["job_name"]):
+            jobs.schedule_removal()
     message = update.effective_message.text
     context.user_data["agreement"] = message
     keyboard = [
@@ -180,6 +212,11 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
     markup = InlineKeyboardMarkup(keyboard)
     if message.strip().lower() == "согласен":
         await update_user(update.effective_user.id, "agreement", 1)
+        user = await get_user(update.effective_user.id)
+        await delete_tag(user[0])
+        await set_tag(user[0], 1)
+        logger.info("Tag has been changed ℹ️")
+        
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text="Выберите план",
@@ -188,13 +225,14 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=os.getenv("ADMIN_ID"), text=f"{context.user_data}"
         )
-        context.job_queue.run_once(
+        job = context.job_queue.run_once(
             send_message_job,
             when=timedelta(hours=1),
             data={"message": "Не забудьте выбрать план"},
-            name="send_message_job",
+            name=f"send_message_job_{update.effective_user.username}",
             chat_id=update.effective_user.id,
         )
+        context.user_data["job_name"] = job.name
         return INLINE_BUTTON
     else:
         await context.bot.send_message(
@@ -205,6 +243,9 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def get_leads(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "job_name" in context.user_data:
+        for jobs in context.job_queue.get_jobs_by_name(context.user_data["job_name"]):
+            jobs.schedule_removal()
     query = update.callback_query
     await query.answer()
     if query.data == "basic":

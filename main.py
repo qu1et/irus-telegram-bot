@@ -1,4 +1,3 @@
-import logging
 import os
 from dotenv import load_dotenv
 
@@ -9,6 +8,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
     CallbackQueryHandler,
+    PicklePersistence,
 )
 from handlers.lead_handlers import (
     start,
@@ -28,16 +28,16 @@ from config.states import (
     INLINE_BUTTON,
 )
 from db.database import create_tables
+from logs.logger import logger
 
 load_dotenv()
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
 
 if __name__ == "__main__":
+    persistence = PicklePersistence(filepath="lead_bot")
     application = (
         ApplicationBuilder()
         .token(os.getenv("TOKEN"))
+        .persistence(persistence)
         .post_init(create_tables)
         .build()
     )
@@ -80,8 +80,10 @@ if __name__ == "__main__":
             ],
         },
         fallbacks=[CommandHandler("start", start)],
+        persistent=True,
+        name="conv_handler",
     )
 
     application.add_handler(conv_handler)
-
+    logger.info("Bot started ✅")
     application.run_polling()
