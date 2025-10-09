@@ -23,6 +23,10 @@ from handlers.admin_handler import (
     get_spam_text,
     confirm_message_text,
     spam_message,
+    get_stat,
+    get_hot_users_list,
+    get_common_users_list,
+    get_cold_users_list,
 )
 from config.states import (
     FIRST_MESSAGE,
@@ -90,9 +94,10 @@ if __name__ == "__main__":
             # Админка
             ADMIN_PANEL: [
                 CallbackQueryHandler(callback=list_users, pattern="users_list"),
-                # CallbackQueryHandler(callback=admin_start, pattern="hot_users_list"),
-                # CallbackQueryHandler(callback=admin_start, pattern="common_users_list"),
-                # CallbackQueryHandler(callback=admin_start, pattern="cold_users_list"),
+                CallbackQueryHandler(callback=get_hot_users_list, pattern="hot_users_list"),
+                CallbackQueryHandler(callback=get_common_users_list, pattern="common_users_list"),
+                CallbackQueryHandler(callback=get_cold_users_list, pattern="cold_users_list"),
+                CallbackQueryHandler(callback=get_stat, pattern="get_stat"),
                 CallbackQueryHandler(callback=get_csv_users_list, pattern="csv_users_list"),
                 CallbackQueryHandler(callback=get_spam_text, pattern="send_message"),
             ],
