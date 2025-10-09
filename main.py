@@ -17,8 +17,12 @@ from handlers.lead_handlers import (
     get_leads,
 )
 from handlers.admin_handler import (
+    admin_start,
     list_users,
     get_csv_users_list,
+    get_spam_text,
+    confirm_message_text,
+    spam_message,
 )
 from config.states import (
     FIRST_MESSAGE,
@@ -28,6 +32,8 @@ from config.states import (
     GET_AGREEMENT,
     INLINE_BUTTON,
     ADMIN_PANEL,
+    CONFIRM_MESSAGE,
+    SPAM_MESSAGE,
 )
 from db.database import create_tables
 from logs.logger import logger
@@ -88,8 +94,18 @@ if __name__ == "__main__":
                 # CallbackQueryHandler(callback=admin_start, pattern="common_users_list"),
                 # CallbackQueryHandler(callback=admin_start, pattern="cold_users_list"),
                 CallbackQueryHandler(callback=get_csv_users_list, pattern="csv_users_list"),
-                # CallbackQueryHandler(callback=admin_start, pattern="send_message"),
+                CallbackQueryHandler(callback=get_spam_text, pattern="send_message"),
             ],
+            CONFIRM_MESSAGE: [
+                MessageHandler(
+                    filters=filters.TEXT & ~filters.COMMAND,
+                    callback=confirm_message_text,
+                )
+            ],
+            SPAM_MESSAGE: [
+                CallbackQueryHandler(callback=spam_message, pattern="yes"),
+                CallbackQueryHandler(callback=admin_start, pattern="no"),
+            ]
         },
         fallbacks=[CommandHandler("start", start)],
         persistent=True,

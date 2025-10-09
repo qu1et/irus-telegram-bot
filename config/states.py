@@ -7,4 +7,6 @@
     GET_AGREEMENT,
     INLINE_BUTTON,
     ADMIN_PANEL,
-) = range(8)
+    CONFIRM_MESSAGE,
+    SPAM_MESSAGE,
+) = range(10)
