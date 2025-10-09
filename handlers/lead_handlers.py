@@ -1,4 +1,3 @@
-import os
 from telegram import (
     Update,
     ReplyKeyboardMarkup,
@@ -22,6 +21,8 @@ from datetime import timedelta
 from db.user_crud import create_user, get_user, update_user
 from db.tags_crud import set_tag, delete_tag
 from logs.logger import logger
+from config.config import ADMIN_ID
+from handlers.admin_handler import admin_start
 
 AGREEMENT_TEXT = (
     "Для отправки вам данных по интересующим компаниям, нам необходимо "
@@ -31,11 +32,13 @@ AGREEMENT_TEXT = (
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id == int(ADMIN_ID):
+        return await admin_start(update, context)
     if not await get_user(update.effective_user.id):
-        await create_user(update.effective_user.id)
+        await create_user(update.effective_user.id, update.effective_user.username)
         logger.info("User has been created 📝")
         user = await get_user(update.effective_user.id)
-        await set_tag(user[0], 3)
+        await set_tag(user[0], 'Холодный')
         logger.info("Tag has been setted 📝")
 
     keyboard = [["Да", "Нет"]]
@@ -80,7 +83,7 @@ async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = await get_user(update.effective_user.id)
         print(user[0])
         await delete_tag(user[0])
-        await set_tag(user[0], 2)
+        await set_tag(user[0], 'Обычный')
         logger.info("Tag has been changed ℹ️")
         await context.bot.send_message(
             chat_id=update.effective_user.id,
@@ -214,17 +217,15 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update_user(update.effective_user.id, "agreement", 1)
         user = await get_user(update.effective_user.id)
         await delete_tag(user[0])
-        await set_tag(user[0], 1)
+        await set_tag(user[0], 'Горячий')
         logger.info("Tag has been changed ℹ️")
-        
+
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text="Выберите план",
             reply_markup=markup,
         )
-        await context.bot.send_message(
-            chat_id=os.getenv("ADMIN_ID"), text=f"{context.user_data}"
-        )
+        await context.bot.send_message(chat_id=ADMIN_ID, text=f"{context.user_data}")
         job = context.job_queue.run_once(
             send_message_job,
             when=timedelta(hours=1),

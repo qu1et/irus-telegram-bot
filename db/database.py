@@ -1,10 +1,12 @@
 import aiosqlite
+from config.config import TAGS
 
 async def create_tables(app):
     conn = await aiosqlite.connect('user.db')
     await conn.execute('''CREATE TABLE IF NOT EXISTS users(
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             id_tg INTEGER UNIQUE,
+                            username TEXT,
                             name TEXT NULL,
                             phone TEXT NULL,
                             email TEXT NULL,
@@ -25,8 +27,10 @@ async def create_tables(app):
     cursor = await conn.execute('SELECT COUNT(*) FROM tags')
     num = await cursor.fetchone()
 
-    if num[0] == 0:
-        await conn.execute('''INSERT OR IGNORE INTO tags (name) VALUES ('Горячий'), ('Обычный'), ('Холодный')''')
+    if num[0] < len(TAGS):
+        stmt = 'INSERT OR IGNORE INTO tags (name) VALUES (?)'
+        for tag in TAGS:
+            await conn.execute(stmt, (tag,))
 
     await conn.commit()
     await conn.close()

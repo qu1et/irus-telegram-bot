@@ -1,6 +1,3 @@
-import os
-from dotenv import load_dotenv
-
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -19,6 +16,10 @@ from handlers.lead_handlers import (
     get_agreement,
     get_leads,
 )
+from handlers.admin_handler import (
+    list_users,
+    get_csv_users_list,
+)
 from config.states import (
     FIRST_MESSAGE,
     GET_NAME,
@@ -26,17 +27,17 @@ from config.states import (
     GET_EMAIL,
     GET_AGREEMENT,
     INLINE_BUTTON,
+    ADMIN_PANEL,
 )
 from db.database import create_tables
 from logs.logger import logger
-
-load_dotenv()
+from config.config import TOKEN
 
 if __name__ == "__main__":
     persistence = PicklePersistence(filepath="lead_bot")
     application = (
         ApplicationBuilder()
-        .token(os.getenv("TOKEN"))
+        .token(TOKEN)
         .persistence(persistence)
         .post_init(create_tables)
         .build()
@@ -77,6 +78,17 @@ if __name__ == "__main__":
             ],
             INLINE_BUTTON: [
                 CallbackQueryHandler(callback=get_leads, pattern="^(extended|basic)"),
+            ],
+
+
+            # Админка
+            ADMIN_PANEL: [
+                CallbackQueryHandler(callback=list_users, pattern="users_list"),
+                # CallbackQueryHandler(callback=admin_start, pattern="hot_users_list"),
+                # CallbackQueryHandler(callback=admin_start, pattern="common_users_list"),
+                # CallbackQueryHandler(callback=admin_start, pattern="cold_users_list"),
+                CallbackQueryHandler(callback=get_csv_users_list, pattern="csv_users_list"),
+                # CallbackQueryHandler(callback=admin_start, pattern="send_message"),
             ],
         },
         fallbacks=[CommandHandler("start", start)],

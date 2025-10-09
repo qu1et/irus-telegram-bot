@@ -6,4 +6,5 @@
     GET_EMAIL,
     GET_AGREEMENT,
     INLINE_BUTTON,
-) = range(7)
+    ADMIN_PANEL,
+) = range(8)
