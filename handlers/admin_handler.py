@@ -20,7 +20,9 @@ from logs.logger import logger
 
 async def admin_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer()
+    if query:
+        await query.answer()
+    
     keyboard = [
         [InlineKeyboardButton("Список пользователей", callback_data="users_list")],
         [
