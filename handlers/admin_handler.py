@@ -67,7 +67,8 @@ async def list_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = "Список всех пользователей:\n"
     text += "№ \- Username \- Имя \- Телефон \- Email\n"
     for i, user in enumerate(users, 1):
-        text += f"{i}\. @{user[2]} \- {user[3]} \- {user[4]} \- {user[5]}\n"
+        phone = str(user[4] or "").replace("+", "\\+")
+        text += f"{i}\. @{user[2]} \- {user[3]} \- {phone} \- {user[5]}\n"
     await context.bot.send_message(
         chat_id=update.effective_user.id, text=text, parse_mode="MarkdownV2"
     )
@@ -159,10 +160,11 @@ async def get_hot_users_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
     users = await get_list_by_tag("Горячий")
     logger.info(f"Получено пользователей с тегом Горячий: {len(users)}")
     if users:
-        text = "Список всех пользователей:\n"
+        text = "Список пользователей с тегом Горячий:\n"
         text += "№ \- Username \- Имя \- Телефон \- Email\n"
         for i, user in enumerate(users, 1):
-            text += f"{i}\. @{user[2]} \- {user[3]} \- {user[4]} \- {user[5]}\n"
+            phone = str(user[4] or "").replace("+", "\\+")
+            text += f"{i}\. @{user[2]} \- {user[3]} \- {phone} \- {user[5]}\n"
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text=text,
@@ -180,10 +182,11 @@ async def get_common_users_list(update: Update, context: ContextTypes.DEFAULT_TY
     users = await get_list_by_tag("Обычный")
     logger.info(f"Получено пользователей с тегом Обычный: {len(users)}")
     if users:
-        text = "Список всех пользователей:\n"
+        text = "Список пользователей с тегом Обычный:\n"
         text += "№ \- Username \- Имя \- Телефон \- Email\n"
         for i, user in enumerate(users, 1):
-            text += f"{i}\. @{user[2]} \- {user[3]} \- {user[4]} \- {user[5]}\n"
+            phone = str(user[4] or "").replace("+", "\\+")
+            text += f"{i}\. @{user[2]} \- {user[3]} \- {phone} \- {user[5]}\n"
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text=text,
@@ -201,10 +204,11 @@ async def get_cold_users_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     users = await get_list_by_tag("Холодный")
     logger.info(f"Получено пользователей с тегом Холодный: {len(users)}")
     if users:
-        text = "Список всех пользователей:\n"
+        text = "Список пользователей с тегом Холодный:\n"
         text += "№ \- Username \- Имя \- Телефон \- Email\n"
         for i, user in enumerate(users, 1):
-            text += f"{i}\. @{user[2]} \- {user[3]} \- {user[4]} \- {user[5]}\n"
+            phone = str(user[4] or "").replace("+", "\\+")
+            text += f"{i}\. @{user[2]} \- {user[3]} \- {phone} \- {user[5]}\n"
         await context.bot.send_message(
             chat_id=update.effective_user.id,
             text=text,

@@ -280,4 +280,4 @@ async def get_leads(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=markup,
             parse_mode="MarkdownV2",
         )
-    return GET_AGREEMENT
+    return INLINE_BUTTON
