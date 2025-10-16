@@ -38,7 +38,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await create_user(update.effective_user.id, update.effective_user.username)
         logger.info("User has been created 📝")
         user = await get_user(update.effective_user.id)
-        await set_tag(user[0], 'Холодный')
+        await set_tag(user[0], "Холодный")
         logger.info("Tag has been setted 📝")
 
     keyboard = [["Да", "Нет"]]
@@ -83,7 +83,7 @@ async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user = await get_user(update.effective_user.id)
         print(user[0])
         await delete_tag(user[0])
-        await set_tag(user[0], 'Обычный')
+        await set_tag(user[0], "Обычный")
         logger.info("Tag has been changed ℹ️")
         await context.bot.send_message(
             chat_id=update.effective_user.id,
@@ -213,11 +213,14 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
     markup = InlineKeyboardMarkup(keyboard)
-    if message.strip().lower() == "согласен":
+    if (
+        message.strip().lower() == "согласен"
+        or context.user_data["agreement"].strip().lower() == "согласен"
+    ):
         await update_user(update.effective_user.id, "agreement", 1)
         user = await get_user(update.effective_user.id)
         await delete_tag(user[0])
-        await set_tag(user[0], 'Горячий')
+        await set_tag(user[0], "Горячий")
         logger.info("Tag has been changed ℹ️")
 
         await context.bot.send_message(
@@ -277,3 +280,4 @@ async def get_leads(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=markup,
             parse_mode="MarkdownV2",
         )
+    return GET_AGREEMENT
