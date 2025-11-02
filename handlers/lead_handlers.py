@@ -14,7 +14,7 @@ from config.states import (
     GET_NUMBER,
     GET_EMAIL,
     GET_AGREEMENT,
-    INLINE_BUTTON,
+    GET_LEAD,
 )
 from handlers.jobs_handler import send_message_job
 from datetime import timedelta
@@ -23,6 +23,7 @@ from db.tags_crud import set_tag, delete_tag
 from logs.logger import logger
 from config.config import ADMIN_ID
 from handlers.admin_handler import admin_start
+from config.lead_magnets import lead_magnets
 
 AGREEMENT_TEXT = (
     "Для отправки вам данных по интересующим компаниям, нам необходимо "
@@ -30,6 +31,17 @@ AGREEMENT_TEXT = (
     'Если вас устраивает, напишите "Согласен".'
 )
 
+async def _i_dont_get_it(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_user.id,
+        text="Я не понимаю, что вы имеете в виду",
+    )
+    
+async def _wrong_format(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_user.id,
+        text="Неверный формат",
+    )
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id == int(ADMIN_ID):
@@ -200,19 +212,6 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
             jobs.schedule_removal()
     message = update.effective_message.text
     context.user_data["agreement"] = message
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "Базовый",
-                callback_data="basic",
-            ),
-            InlineKeyboardButton(
-                "Расширенный",
-                callback_data="extended",
-            ),
-        ]
-    ]
-    markup = InlineKeyboardMarkup(keyboard)
     if (
         message.strip().lower() == "согласен"
         or context.user_data["agreement"].strip().lower() == "согласен"
@@ -222,12 +221,6 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await delete_tag(user[0])
         await set_tag(user[0], "Горячий")
         logger.info("Tag has been changed ℹ️")
-
-        await context.bot.send_message(
-            chat_id=update.effective_user.id,
-            text="Выберите план",
-            reply_markup=markup,
-        )
         await context.bot.send_message(chat_id=ADMIN_ID, text=f"{context.user_data}")
         job = context.job_queue.run_once(
             send_message_job,
@@ -237,7 +230,7 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=update.effective_user.id,
         )
         context.user_data["job_name"] = job.name
-        return INLINE_BUTTON
+        return await _send_lead(update, context)
     else:
         await context.bot.send_message(
             chat_id=update.effective_user.id,
@@ -246,38 +239,37 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return FIRST_MESSAGE
 
 
+async def _send_lead(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [
+            InlineKeyboardButton("Базовый", callback_data="basic"),
+            InlineKeyboardButton("Расширенный", callback_data="extended"),
+        ]
+    ]
+    markup = InlineKeyboardMarkup(keyboard)
+    await context.bot.send_message(
+        chat_id=update.effective_user.id,
+        text="Выберите план",
+        reply_markup=markup,
+    )
+    return GET_LEAD
+
+
 async def get_leads(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if "job_name" in context.user_data:
-        for jobs in context.job_queue.get_jobs_by_name(context.user_data["job_name"]):
-            jobs.schedule_removal()
     query = update.callback_query
     await query.answer()
     if query.data == "basic":
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "План", url="https://parents-chew-q3e.craft.me/2PpY6OcIw0T5C4"
-                ),
-            ]
-        ]
-        markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
-            text="Получите базовый план уже сейчас",
-            reply_markup=markup,
-            parse_mode="MarkdownV2",
-        )
+        with open(lead_magnets["basic"]["img"], "rb") as photo:
+            await context.bot.send_photo(
+                chat_id=update.effective_user.id,
+                photo=photo,
+                caption=lead_magnets["basic"]["description"],
+            )
     elif query.data == "extended":
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "План", url="https://parents-chew-q3e.craft.me/S1Jj4dwYTEthRE"
-                ),
-            ]
-        ]
-        markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text(
-            text="Получите расширенный план уже сейчас",
-            reply_markup=markup,
-            parse_mode="MarkdownV2",
-        )
-    return INLINE_BUTTON
+        with open(lead_magnets["extended"]["img"], "rb") as photo:
+            await context.bot.send_photo(
+                chat_id=update.effective_user.id,
+                photo=photo,
+                caption=lead_magnets["extended"]["description"],
+            )
+    return await _send_lead(update, context)

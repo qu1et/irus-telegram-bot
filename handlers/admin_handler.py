@@ -118,16 +118,13 @@ async def confirm_message_text(update: Update, context: ContextTypes.DEFAULT_TYP
     return SPAM_MESSAGE
 
 
-async def spam_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    users = await get_users()
+async def _spam(update: Update, users: list[tuple[int, str, str, str]], message: str, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"Рассылка на {len(users)} пользователей началась 🚀")
     for user in users:
         try:
             await context.bot.send_message(
                 chat_id=user[1],
-                text=context.user_data["spam_message"],
+                text=message,
             )
             await asyncio.sleep(0.07)
         except Exception as e:
@@ -140,6 +137,12 @@ async def spam_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="Рассылка завершена",
     )
     logger.info("Рассылка завершена ✅")
+
+async def spam_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    users = await get_users()
+    context.application.create_task(_spam(update, users, context.user_data["spam_message"], context))
     await admin_start(update, context)
     return ADMIN_PANEL
 

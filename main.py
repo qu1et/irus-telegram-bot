@@ -15,6 +15,8 @@ from handlers.lead_handlers import (
     get_email,
     get_agreement,
     get_leads,
+    _i_dont_get_it,
+    _wrong_format,
 )
 from handlers.admin_handler import (
     admin_start,
@@ -34,7 +36,7 @@ from config.states import (
     GET_NUMBER,
     GET_EMAIL,
     GET_AGREEMENT,
-    INLINE_BUTTON,
+    GET_LEAD,
     ADMIN_PANEL,
     CONFIRM_MESSAGE,
     SPAM_MESSAGE,
@@ -58,9 +60,10 @@ if __name__ == "__main__":
         states={
             FIRST_MESSAGE: [
                 MessageHandler(
-                    filters=filters.TEXT & ~filters.COMMAND,
+                    filters=filters.Regex("^(Да|Нет)$") & ~filters.COMMAND,
                     callback=get_answer,
                 ),
+                MessageHandler(~filters.COMMAND, callback=_i_dont_get_it)
             ],
             GET_NAME: [
                 MessageHandler(
@@ -70,23 +73,26 @@ if __name__ == "__main__":
             ],
             GET_NUMBER: [
                 MessageHandler(
-                    filters=filters.CONTACT,
+                    filters=filters.CONTACT | filters.Regex("^[78]\d{10}$"),
                     callback=get_number,
-                )
+                ),
+                MessageHandler(~filters.COMMAND, callback=_wrong_format)
             ],
             GET_EMAIL: [
                 MessageHandler(
-                    filters=filters.TEXT & ~filters.COMMAND,
+                    filters=filters.Regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$") & ~filters.COMMAND,
                     callback=get_email,
-                )
+                ),
+                MessageHandler(~filters.COMMAND, callback=_wrong_format)
             ],
             GET_AGREEMENT: [
                 MessageHandler(
-                    filters=filters.TEXT & ~filters.COMMAND,
+                    filters=filters.Regex("^(Согласен|Не согласен)$") & ~filters.COMMAND,
                     callback=get_agreement,
-                )
+                ),
+                MessageHandler(~filters.COMMAND, callback=_i_dont_get_it)
             ],
-            INLINE_BUTTON: [
+            GET_LEAD: [
                 CallbackQueryHandler(callback=get_leads, pattern="^(extended|basic)"),
             ],
 
