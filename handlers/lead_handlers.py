@@ -19,7 +19,7 @@ from config.states import (
 from handlers.jobs_handler import send_message_job
 from datetime import timedelta
 from db.user_crud import create_user, get_user, update_user
-from db.tags_crud import set_tag, delete_tag
+from db.tags_crud import set_tag, delete_tag, update_tag
 from logs.logger import logger
 from config.config import ADMIN_ID
 from handlers.admin_handler import admin_start
@@ -92,10 +92,7 @@ async def get_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
         resize_keyboard=True,
     )
     if answer.strip().lower() == "да":
-        user = await get_user(update.effective_user.id)
-        print(user[0])
-        await delete_tag(user[0])
-        await set_tag(user[0], "Обычный")
+        await update_tag(update.effective_user.id, "Обычный")
         logger.info("Tag has been changed ℹ️")
         await context.bot.send_message(
             chat_id=update.effective_user.id,
@@ -217,9 +214,7 @@ async def get_agreement(update: Update, context: ContextTypes.DEFAULT_TYPE):
         or context.user_data["agreement"].strip().lower() == "согласен"
     ):
         await update_user(update.effective_user.id, "agreement", 1)
-        user = await get_user(update.effective_user.id)
-        await delete_tag(user[0])
-        await set_tag(user[0], "Горячий")
+        await update_tag(update.effective_user.id, "Горячий")
         logger.info("Tag has been changed ℹ️")
         await context.bot.send_message(chat_id=ADMIN_ID, text=f"{context.user_data}")
         job = context.job_queue.run_once(
